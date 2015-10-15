@@ -3,6 +3,7 @@ Modified openssl to work as an upgrade for Palm webOS devices
 
 The version of openssl sources are from:
 https://www.openssl.org/source/openssl-0.9.8zg.tar.gz
+only the modified files are posted
 
 build environment is the webos-internals build:
 https://github.com/webos-internals/build
