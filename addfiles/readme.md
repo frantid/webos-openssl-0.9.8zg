@@ -1,1 +1,1 @@
-additional files to include in the packages
+additional files to include in the build
