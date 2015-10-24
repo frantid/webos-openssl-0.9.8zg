@@ -1,0 +1,82 @@
+#!/bin/sh
+
+APPID=com.palm.openssl
+
+# Handle execution as pmPostInstall.script
+if [ -z "$IPKG_OFFLINE_ROOT" ]; then
+    IPKG_OFFLINE_ROOT=/media/cryptofs/apps
+    mount -o remount,rw /
+fi
+
+mount -o remount,rw /boot
+
+APPS=/media/cryptofs/apps
+
+[ -d ${APPS} ] || { echo "Requires webOS 1.3.5 or later" ; exit 1 ; }
+SCRIPTS=/etc/ssl/scripts
+SRCDIR=${APPS}/usr/palm/applications/${APPID}
+
+
+cd ${SRCDIR}
+
+error=0
+echo "copying scripts"
+mkdir -p /etc/ssl/scripts
+install -m 775 ${SRCDIR}/addfiles/scripts/* /etc/ssl/scripts/
+
+if [ -d /etc/ssl/scripts ] && [ -f ${SCRIPTS}/ca-certificates.crt ]; then
+    echo "installing root certs"
+    cd ${SCRIPTS}
+    mv -f /etc/ssl/certs/ca-certificates.crt ${SCRIPTS}/ca-certificates.crt.old
+    mv -f ${SCRIPTS}/ca-certificates.crt /etc/ssl/certs/
+    mv -f ${SCRIPTS}/system-bundle.crt.gz /etc/ssl/certs/
+else
+    echo "cannot find scripts directory exiting install, root certs not updated!"
+    exit 1
+fi
+
+
+echo "backing up files"
+cp -f /usr/lib/libcrypto.so.0.9.8 /usr/lib/libcrypto.so.0.9.8.webosinternals.orig || \
+{ echo "error occurred backing up libcrypto.so.0.9.8"     ; error=1 ; }
+cp -f /usr/lib/libssl.so.0.9.8 /usr/lib/libssl.so.0.9.8.webosinternals.orig || \
+{ echo "error occurred backing up libssl.so.0.9.8"      ; error=1 ; }
+cp -f /usr/bin/openssl /usr/bin/openssl.webosinternals.orig || \
+{ echo "error occurred backing up openssl"     ; error=1 ; }
+
+if [ "${error}" = "0" ]; then
+    echo "copying files to /usr/lib/"
+    mv -f ${SRCDIR}/usr/lib/libcrypto.so.0.9.8 /usr/lib/libcrypto.so.0.9.8 || \
+    { echo "error copying libcrypto.so.0.9.8"     ; error=1 ; }
+    mv -f ${SRCDIR}/usr/lib/libssl.so.0.9.8 /usr/lib/libssl.so.0.9.8 || \
+    { echo "error occurred copying libssl.so.0.9.8"    ; error=1 ; }
+    echo "copying files to /usr/bin/"
+    mv -f ${SRCDIR}/usr/bin/openssl /usr/bin/openssl || \
+    { echo "error occurred copying openssl"    ; error=1 ; }
+fi
+
+if [ "${error}" = "1" ]; then
+  if [ -e /usr/bin/openssl.webosinternals.orig ] ; then
+    mv -f /usr/bin/openssl.webosinternals.orig /usr/bin/openssl
+    echo "restored openssl"
+  fi
+  if [ -e /usr/lib/libcrypto.so.0.9.8.webosinternals.orig ] ; then
+    mv -f /usr/lib/libcrypto.so.0.9.8.webosinternals.orig /usr/lib/libcrypto.so.0.9.8
+    echo "restored libcrypto.so.0.9.8"
+  fi
+  if [ -e /usr/lib/libssl.so.0.9.8.webosinternals.orig ] ; then
+    mv -f /usr/lib/libssl.so.0.9.8.webosinternals.orig /usr/lib/libssl.so.0.9.8
+    echo "restored libssl.so.0.9.8"
+  fi
+  exit 1
+fi
+
+echo "openssl installed"
+echo $(/usr/bin/openssl version -a)
+
+echo "restarting "
+shutdown -r now
+sleep 10
+
+
+exit 0
