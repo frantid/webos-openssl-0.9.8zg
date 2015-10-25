@@ -1,0 +1,13 @@
+Index: src/ssl/ssl_lib.c
+===================================================================
+--- src/ssl/ssl_lib.c	(revision )
++++ src/ssl/ssl_lib.c	(revision )
+@@ -1635,6 +1635,8 @@
+      */
+     ret->options |= SSL_OP_LEGACY_SERVER_CONNECT;
+ 
++    SSL_CTX_set_default_verify_paths(ret)
++
+     return (ret);
+  err:
+     SSLerr(SSL_F_SSL_CTX_NEW, ERR_R_MALLOC_FAILURE);
