@@ -128,7 +128,7 @@ echo $palmCerts
 if [ ${LINKDIR} = "/var/ssl/trustedcerts" ]; then
     echo "updating calinks.tgz"
     find -type l -print0 | tar -czvf calinks.tgz --transform='s#./##' --null -T -
-    mv calinks.tgz /etc/ssl/certs/
+    mv -f calinks.tgz /etc/ssl/certs/
 
 fi
 cd ${BACKDIR}
