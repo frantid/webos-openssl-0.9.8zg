@@ -46,6 +46,7 @@ else
 fi
 echo "updating rootcerts"
 rm -f "rootsmoved.txt"
+rm -f "untrusted.txt"
 ./movecerts.sh ${RTCERTS} ${CERTDIR} > "rootsmoved.txt"
 echo "checking for revoked certs"
 untrusted="rootcerts/untrusted.txt"
@@ -53,7 +54,7 @@ if [ -f ${untrusted} ]; then
     while read -r line; do
         if [ -e "${CERTDIR}/${line}.0" ]; then
             echo "found cert hash: ${line}"
-            { ls -l "${CERTDIR}/${line}.*" ; }
+            { ls -l "${CERTDIR}/${line}.*" >> untrusted.txt ; }
         else
             echo "hash: ${line} not found"
         fi

@@ -1,0 +1,78 @@
+#!/bin/sh
+
+APPID=com.palm.rootcertsupdate
+
+# Handle execution as pmPostInstall.script
+if [ -z "$IPKG_OFFLINE_ROOT" ]; then
+    IPKG_OFFLINE_ROOT=/media/cryptofs/apps
+    mount -o remount,rw /
+fi
+
+mount -o remount,rw /
+
+APPS=/media/cryptofs/apps
+
+[ -d ${APPS} ] || { echo "Requires webOS 1.3.5 or later" ; exit 1 ; }
+SCRIPTS=/etc/ssl/scripts
+SRCDIR=${APPS}/usr/palm/applications/${APPID}
+
+
+cd ${SRCDIR}
+
+error=0
+echo "copying scripts"
+mkdir -p /etc/ssl/scripts
+install -m 775 ${SRCDIR}/scripts/* /etc/ssl/scripts/
+
+if [ ! -d /etc/ssl/certs/trustedcerts ] && [ ! -d /var/ssl/trustedcerts ]; then
+    if [ -f ${SCRIPTS}/ca-certificates.crt ]; then
+        echo "1.4.5 or earlier updating root cert bundle"
+        cd ${SCRIPTS}
+        mv -f /etc/ssl/certs/ca-certificates.crt ${SCRIPTS}/ca-certificates.crt.old
+        mv -f ${SCRIPTS}/ca-certificates.crt /etc/ssl/certs/
+        mv -f ${SCRIPTS}/system-bundle.crt.gz /etc/ssl/certs/
+        rm -f ${SCRIPTS}/root-certs.tar.gz
+        rm -f ${SCRIPTS}/deploycerts.sh
+        rm -f ${SCRIPTS}/movecerts.sh
+        rm -f ${SCRIPTS}/cleancerts.sh
+        rm -f ${SCRIPTS}/verifylinks.sh
+        echo "Root certs successfully updated"
+        sleep 4
+        exit 0
+    fi
+    echo "cannot find updated root certs, exiting install, root certs not updated!"
+    sleep 4
+    exit 1
+fi
+
+if [ -d /etc/ssl/certs/trustedcerts ] && [ -d /var/ssl/trustedcerts ]; then
+    if [ -d /etc/ssl/scripts ] && [ -f ${SCRIPTS}/root-certs.tar.gz ]; then
+        echo "extracting root certs"
+        cd ${SCRIPTS}
+        rm -rf rootcerts
+        mkdir -p rootcerts
+        # remove 1.4.5 files
+        rm -f ${SCRIPTS}/ca-certificates.crt
+        rm -f ${SCRIPTS}/system-bundle.crt.gz
+        $( cd rootcerts ; tar -xzf ../root-certs.tar.gz )
+        RTCERTS=$(find ./rootcerts -type f -print0)
+        if [ -n ${RTCERTS} ]; then
+            cd ${SCRIPTS}
+            ${SCRIPTS}/deploycerts.sh
+        else
+            echo "cannot find updated root certs, exiting install, root certs not updated!"
+            exit 1
+        fi
+    else
+        echo "cannot find updated root certs, exiting install, root certs not updated!"
+        exit 1
+    fi
+else
+    echo "cannot find scripts directory exiting install, root certs not updated!"
+    exit 1
+fi
+[ -d ${SCRIPTS}/rootcerts ] && rm -rf ${SCRIPTS}/rootcerts
+echo "Root certs successfully updated"
+sleep 4
+
+exit 0
